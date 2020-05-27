@@ -1,0 +1,24 @@
+﻿SELECT count(*)
+FROM (SELECT RANK() OVER(PARTITION BY pr_cd ORDER BY pr_num) pr_rank,          
+            IFNULL(CONCAT(prfdate,' ',TIME('00:00:00')), '2008-12-31 00:00:00') ptp,                        
+            TIMESTAMPDIFF(hour, IFNULL(CONCAT(DATE(LAG(edate, 1) OVER (PARTITION BY pr_cd ORDER BY pr_num)),' ',TIME(LAG(etime, 1) OVER (PARTITION BY pr_cd ORDER BY pr_num))),IFNULL(CONCAT(prfdate,' ',TIME('00:00:00')), '2008-12-31 00:00:00')), IF(bstat = 'C',CONCAT('2020-05-24', ' 00:00:00'), CONCAT(sdate,' ',stime))) bhour,                
+            bstat           
+       FROM KGDATA          
+       WHERE 1 = 1            
+       AND plant like '3%'            
+       AND !(edate IS NULL AND bstat = 'F')
+       AND prloc in (SELECT key2_cd_old FROM kgloc WHERE key2_cd IN ('3010','3100','3200','3210','3300','3400','3500','3600','3700','3800','3900')) -- key2_cd 변수 if all이면 해당쿼리 사용x
+       AND fl_cd in (SELECT DISTINCT CONCAT(key1_cd,'-', substring(key2_cd_old,2),'-',fl_cd)                            
+                       FROM KGLOC INNER JOIN KGSBT                           
+                      WHERE 1=1                             
+                        AND key1_cd IN ('3010','3100','3200','3210','3300','3400','3500','3600','3700','3800','3900') -- key1_cd 변수
+                        AND key2_cd IN ('3010','3100','3200','3210','3300','3400','3500','3600','3700','3800','3900') -- key2_cd 변수 if all이면 해당쿼리 사용x
+                        AND key3_cd = '15' -- key3_cd 변수 (필수로 들어와야 하는값)
+                        AND key4_cd IN ('3010','3100','3200','3210','3300','3400','3500','3600','3700','3800','3900') -- key4_cd 변수 if all이면 해당쿼리 사용x
+                        AND key5_cd IN ('3010','3100','3200','3210','3300','3400','3500','3600','3700','3800','3900') -- key5_cd 변수 if all이면 해당쿼리 사용x
+       )            
+       AND (sdate >= '2009-01-01' or bstat = 'C') -- sdate 변수 (Null이면 해당쿼리 사용x)
+       AND (sdate <= '2020-05-24' or bstat = 'C') -- edate 변수 (Null이면 해당쿼리 사용x)      
+       ORDER BY pr_cd, pr_num) A  
+ WHERE !(ptp < '2009-01-01 00:00:00' and pr_rank = '1')    
+ AND bhour > 0;

@@ -1,0 +1,37 @@
+﻿SELECT COUNT(*)
+ FROM (SELECT RANK() OVER(PARTITION BY pr_cd ORDER BY pr_num) pr_rank,
+              IFNULL(CONCAT(prfdate,' ',TIME('00:00:00')), '2008-12-31 00:00:00') ptp,
+              TIMESTAMPDIFF(hour, IFNULL(CONCAT(DATE(LAG(edate, 1) OVER (PARTITION BY pr_cd ORDER BY pr_num)),' ',TIME(LAG(etime, 1) OVER (PARTITION BY pr_cd ORDER BY pr_num))),IFNULL(CONCAT(prfdate,' ',TIME('00:00:00')), '2008-12-31 00:00:00')), IF(bstat = 'C', NOW(), CONCAT(sdate,' ',stime))) bhour
+              FROM KGDATA
+              WHERE 1 = 1
+              AND plant like '2%'
+              AND !(edate IS NULL AND bstat = 'F')
+			  AND prloc in (SELECT key2_cd_old FROM kgloc WHERE key2_cd IN ('3010','3100','3200')) -- key2_cd 변수 if all이면 해당쿼리 사용x
+              AND fl_cd IN (SELECT DISTINCT CONCAT(key1_cd,'-', fl_cd)
+                              FROM KGLOC INNER JOIN KGPBT
+                             WHERE 1=1
+                               AND key1_cd in ('2100','2200')  -- key1_cd 변수
+                               AND key2_cd IN ('3010','3100','3200')  -- key2_cd 변수 if all이면 해당쿼리 사용x
+                               AND key3_cd in ('2') -- key3_cd 필수 변수
+                               AND key3_1_cd IN ('3010','3100','3200')  -- key3_1_cd 변수 if all이면 해당쿼리 사용x
+							   -- key3_cd 변수가 if(key3_cd != '1' && key3_cd != '2' && key3_cd != '3' ) 1,2,3이 아닐 경우에만 아래쿼리 사용
+                               AND key4_cd IN ('3010','3100','3200')  -- key4_cd 변수 if all이면 해당쿼리 사용x
+                               AND key5_cd IN ('3010','3100','3200')  -- key5_cd 변수 if all이면 해당쿼리 사용x
+
+
+                               AND key3_1_cd IN ('3010','3100','3200')  -- key3_1_cd 변수 if all이면 해당쿼리 사용x
+                           )
+			  -- key3_cd 변수가 if(key3_cd == '1' || key3_cd == '2' || key3_cd == '3' ) 1,2,3일 경우에만 아래 쿼리 사용
+              AND fl_tag REGEXP (SELECT CONCAT('^',group_CONCAT(FL_TAG SEPARATOR '-|^'),'-')
+                                   FROM KGTAG
+                                  WHERE 1=1
+								    AND key3_cd in ('2') -- key3_cd 필수 변수
+								    AND key4_cd IN ('3010','3100','3200')  -- key4_cd 변수 if all이면 해당쿼리 사용x
+								    AND key5_cd IN ('3010','3100','3200')  -- key5_cd 변수 if all이면 해당쿼리 사용x
+								    AND key6_cd IN ('3010','3100','3200')  -- key6_cd 변수 if all이면 해당쿼리 사용x
+                                )
+              AND (sdate >= '2009-01-01' or bstat = 'C') -- sdate 변수 (Null이면 해당쿼리 사용x)
+              AND (sdate <= '2020-05-24' or bstat = 'C') -- edate 변수 (Null이면 해당쿼리 사용x)
+              ORDER BY pr_cd, pr_num) A
+WHERE !(ptp < '2009-01-01 00:00:00' AND pr_rank = '1')
+  AND bhour > 0;

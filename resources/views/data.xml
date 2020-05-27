@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<datas> 
+<data> 
+<userid>Windows</name> 
+<point>9</version> 
+</data> 
+<data> 
+<userid>Linux</name> 
+<point>12</version> 
+</data> 
+<data> 
+<userid>Mac</name> 
+<point>8</version> 
+</data> 
+</datas>
